@@ -1,4 +1,4 @@
-# AmpFreeTools
+# AmpFreeTools v0.10.0
 Tools for QC-ing and Plotting outputs from PacBio's AmpFree protocol.  These tools require the following libraries to run successfully:
 
 * matplotlib >= 2.0
