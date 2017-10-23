@@ -40,6 +40,7 @@
 import sys
 from collections import defaultdict
 
+import matplotlib; matplotlib.use('agg')
 import pandas as pd
 import numpy as np
 import seaborn as sns
