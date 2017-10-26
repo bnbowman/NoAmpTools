@@ -75,6 +75,7 @@ for i, c in enumerate(LABELS):
 TARGETS = [["HTT", "chr4", 4, 3075691, 3076603, 3076661, 3076815],
            ["FMR1", "chrX", 23, 146993123, 146993568, 146993629, 146994131],
            ["ALS", "chr9", 9, 27572985, 27573522, 27573541, 27574014],
+           ["FUCHS", "chr18", 18, 53251995, 53253386, 53253458, 53253577],
            ["SCA10", "chr22", 22, 46190744, 46191234, 46191305, 46191756]]
 
 def GetIndexFiles( fns ):
@@ -186,7 +187,7 @@ def PlotCoverageData( data, colors, targets, name, outputPrefix ):
     plt.xticks(medians, labels)
     plt.xlabel("Genomic Position")
     plt.ylabel("Alignment Count")
-    pltTitle = "Sample {0} Distribution by Genomic Position".format(name)
+    pltTitle = "{0} - {1} Distribution by Genomic Position".format(outputPrefix, name)
     plt.title(pltTitle)
 
     # Add target labels to the graph and set the y-axis
@@ -201,14 +202,14 @@ def PlotCoverageData( data, colors, targets, name, outputPrefix ):
         plt.text(tBin, maxCov, tName)
 
     plt.ylim(0, maxCov * 1.1)
-    pltFilename = "{0}_{1}_coverage.png".format(outputPrefix, name.lower())
+    pltFilename = "{0}_{1}_coverage.png".format(outputPrefix.lower(), name.lower())
     plt.savefig(pltFilename)
 
     p = {"caption": pltTitle,
            "image": pltFilename,
-            "tags": [], 
-              "id": "GenomeCoverageBy{0}".format(name),
-           "title": "Genome Coverage By {0}".format(name)}
+            "tags": [],
+              "id": "{0} - GenomeCoverageBy{1}".format(outputPrefix, name),
+           "title": "{0} - Genome Coverage By {1}".format(outputPrefix, name)}
     return p
 
 def ReadOnTargetCountsFromPBI( fns, targets ):
@@ -294,7 +295,7 @@ def PlotOnTargetTable( onTargetD, nZmw, totalCov, targets, sizes, outputPrefix )
     rows.append( ["Total", str(tZmw), str(tFrac) + "%", str(tEnrich) + "-fold", str(tCcs), str(tSubread)] )
 
     # Plot
-    fig = plt.figure(frameon=False, figsize=(8, 3.5))
+    fig = plt.figure(frameon=False, figsize=(8, 4.115))
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis('off')
     t = ax.table(cellText=rows,
@@ -303,14 +304,14 @@ def PlotOnTargetTable( onTargetD, nZmw, totalCov, targets, sizes, outputPrefix )
                 loc='center', cellLoc='center')
     t.set_fontsize(24)
     t.scale(1, 3.5)
-    pltFilename = "{0}_target_table.png".format(outputPrefix)
+    pltFilename = "{0}_target_table.png".format(outputPrefix.lower())
     plt.savefig(pltFilename, bbox='tight')
 
     p = {"caption": "Table of On-Target Subreads/ZMWs By Locus",
            "image": pltFilename,
-            "tags": [], 
-              "id": "On-Target Table",
-           "title": "OnTargetTable"}
+            "tags": [],
+              "id": "{0} - On-Target Table".format(outputPrefix),
+           "title": "{0} - OnTargetTable".format(outputPrefix)}
     return p
 
 # First plot the over-all coverage information
