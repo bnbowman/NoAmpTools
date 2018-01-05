@@ -76,7 +76,9 @@ TARGETS = [["HTT", "chr4", 4, 3075691, 3076603, 3076661, 3076815],
            ["FMR1", "chrX", 23, 146993123, 146993568, 146993629, 146994131],
            ["ALS", "chr9", 9, 27572985, 27573522, 27573541, 27574014],
            ["FUCHS", "chr18", 18, 53251995, 53253386, 53253458, 53253577],
-           ["SCA10", "chr22", 22, 46190744, 46191234, 46191305, 46191756]]
+           ["SCA10", "chr22", 22, 46190744, 46191234, 46191305, 46191756],
+           ["EWINGS_Chr20", "chr20", 20, 21553989, 21556922, 21557001, 21557036],
+           ["EWINGS_ChrX", "chrX", 23, 30325813, 30328875, 30328976, 30329062]]
 
 def GetIndexFiles( fns ):
     indexFiles = []
@@ -198,8 +200,8 @@ def PlotCoverageData( data, colors, targets, name, outputPrefix ):
         mid    = (t[3] + t[6]) / 2
         chrBin = mid / BIN_SIZE
         offset = len(name) * 4 - 4
-        tBin    = cutoffs[chrIdx-2] + chrBin - offset
-        plt.text(tBin, maxCov, tName)
+        tBin    = cutoffs[chrIdx-2] + chrBin - offset + 2  # +2 to align text-middle rather than text-bottom
+        plt.text(tBin, maxCov, tName, fontsize=14, rotation='vertical')
 
     plt.ylim(0, maxCov * 1.1)
     pltFilename = "{0}_{1}_coverage.png".format(outputPrefix.lower(), name.lower())
