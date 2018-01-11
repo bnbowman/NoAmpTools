@@ -305,7 +305,7 @@ def PlotOnTargetTable( onTargetD, nZmw, totalCov, targets, sizes, outputPrefix )
                 colLabels=["Target", "nZMW", "FracZMW", "Enrichment", "estCCS", "nSubread"],
                 loc='center', cellLoc='center')
     t.set_fontsize(24)
-    t.scale(1, 3.5)
+    t.scale(1, 2.72)
     pltFilename = "{0}_target_table.png".format(outputPrefix.lower())
     plt.savefig(pltFilename, bbox='tight')
 
