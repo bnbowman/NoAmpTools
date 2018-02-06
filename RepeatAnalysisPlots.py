@@ -93,8 +93,8 @@ def PlotRepeats( csvs, tpls, name ):
     plotName = "{0}_zmws.png".format(name.lower())
     g = sns.FacetGrid(data, row="Barcode", size=2.0, aspect=6, xlim=(0,maxRpt))
     g = g.map(plt.plot, "variable", "values", color="darkblue")
-    for bcIdx, counts in tpls.iteritems():
-        ax = g.facet_axis(bcIdx, 0)
+    for i, (bcIdx, counts) in enumerate(tpls.iteritems()):
+        ax = g.facet_axis(i, 0)
         for ct in counts:
             ax.axvline(x=ct, color="red", ls='--')
     g.set_axis_labels("Repeat Count", "Density")
