@@ -338,7 +338,9 @@ def PlotAdapterOnTargetTable( outputPrefix, summaries ):
         left  = "POLYA" if leftPolyA  == "T" else "TC6"
         right = "POLYA" if rightPolyA == "T" else "TC6"
         ecoR1 = [leftEcoR1, rightEcoR1].count("T")
-        if ecoR1 == 1 and ((left == "POLYA") ^ (right == "POLYA")):
+        if left == "POLYA" and right == "POLYA":
+            continue
+        elif ecoR1 == 1 and ((left == "POLYA") ^ (right == "POLYA")):
             counts[("TC6:POLYA (1x EcoR1)", target)] += 1
         elif ecoR1 == 2 and left == "TC6" and right == "TC6":
             counts[("TC6:TC6 (2x EcoR1)", target)] += 1
