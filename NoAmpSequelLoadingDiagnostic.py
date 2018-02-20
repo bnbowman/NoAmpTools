@@ -306,6 +306,7 @@ def PlotAdapterEcoR1Table( outputPrefix, summaries ):
             for k3 in [0, 1, 2]:
                 summaryStr = "{0}:{1} ({2}x EcoR1)".format(k1, k2, k3)
                 count = counts[summaryStr]
+                cumsum += count
                 rows.append( [summaryStr, count, "{}%".format(round(100 * count / total, 2))] )
     rows.append( ["Sum", cumsum, "{}%".format(round(100 * cumsum / total, 2))] )
 
