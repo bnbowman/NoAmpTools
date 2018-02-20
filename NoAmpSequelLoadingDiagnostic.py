@@ -383,6 +383,38 @@ def PlotAdapterOnTargetTable( outputPrefix, summaries ):
            "title": "{0} - AdapterOnTargetCounts".format(outputPrefix)}
     return p
 
+def PlotInternalEcoR1Count( outputPrefix, summaries ):
+    counts = defaultdict(int)
+    total = 0.0
+    for row in summaries:
+        insideEcoR1 = row[14]
+        counts[insideEcoR1] += 1
+        total += 1
+
+    rows = []
+    rows.append( ["True", counts["T"], "{}%".format(round(100 * counts["T"] / total, 2))] )
+    rows.append( ["False", counts["F"], "{}%".format(round(100 * counts["F"] / total, 2))] )
+    rows.append( ["Sum", counts["T"] + counts["F"], "{}%".format(round(100 * (counts["T"] + counts["F"]) / total, 2))] )
+
+    # Plot the results as a table
+    fig = plt.figure(frameon=False, figsize=(6, 2.04))
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.axis('off')
+    t = ax.table(cellText=rows,
+                colLabels=["Internal EcoR1 Site", "Count", "Fraction"],
+                loc='center', cellLoc='center')
+    t.set_fontsize(24)
+    t.scale(1, 3)
+    pltFilename = "{0}_internal_ecoR1.png".format(outputPrefix.lower())
+    plt.savefig(pltFilename, bbox='tight')
+
+    p = {"caption": "Table of Internal EcoR1 Counts",
+           "image": pltFilename,
+            "tags": [],
+              "id": "{0} - Internal EcoR1 Counts".format(outputPrefix),
+           "title": "{0} - InternalEcoR1Counts".format(outputPrefix)}
+    return p
+
 def WriteReportJson( plotList=[], tableList=[] ):
     reportDict = {"plots":plotList, "tables":tableList}
     reportStr = json.dumps(reportDict, indent=1)
@@ -396,4 +428,5 @@ summaries = SummarizeData( indexedFasta, windows, adps )
 WriteSummaryCsv( outputPrefix, summaries )
 p1 = PlotAdapterEcoR1Table( outputPrefix, summaries )
 p2 = PlotAdapterOnTargetTable( outputPrefix, summaries )
-WriteReportJson( [p1, p2] )
+p3 = PlotInternalEcoR1Count( outputPrefix, summaries )
+WriteReportJson( [p1, p2, p3] )
