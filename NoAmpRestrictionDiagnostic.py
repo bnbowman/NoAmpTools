@@ -240,7 +240,7 @@ def TabulateRestrictionTable( summaries ):
 def PlotRestrictionCountsTable( outputPrefix, counts ):
     """Tabulate our cut-sites combinations and plot them as a table"""
     # Convert those counts to an array-of-arrays with sums
-    ids = sorted(SearchSequence("NNNNNNNNNNN").keys())
+    ids = ["None"] + sorted(SearchSequence("NNNNNNNNNNN").keys())
     rows = []
     for leftRE in ids:
         row = []
@@ -256,7 +256,7 @@ def PlotRestrictionCountsTable( outputPrefix, counts ):
     rows.append( finalRow )
 
     # Plot the results as a table
-    fig = plt.figure(frameon=False, figsize=(8, 4.025))
+    fig = plt.figure(frameon=False, figsize=(8, 4.44))
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis('off')
     t = ax.table(cellText=rows,
@@ -276,7 +276,7 @@ def PlotRestrictionCountsTable( outputPrefix, counts ):
 
 def PlotRestrictionFracsTable( outputPrefix, counts, precision=2 ):
     """Tabulate our cut-sites combinations and plot them as a table"""
-    ids = sorted(SearchSequence("NNNNNNNNNNN").keys())
+    ids = ["None"] + sorted(SearchSequence("NNNNNNNNNNN").keys())
     total = 0.0
     for leftRE in ids:
         if leftRE == "Mixed": continue
@@ -303,7 +303,7 @@ def PlotRestrictionFracsTable( outputPrefix, counts, precision=2 ):
     rows.append( finalRow )
 
     # Plot the results as a table
-    fig = plt.figure(frameon=False, figsize=(8, 4.025))
+    fig = plt.figure(frameon=False, figsize=(8, 4.44))
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis('off')
     t = ax.table(cellText=rows,
