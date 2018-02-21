@@ -96,6 +96,9 @@ def HasAcc1( seq ):
 def HasKpn1( seq ):
     return HasCutSite("GGTACC", seq)
 
+def HasBgl2( seq ):
+    return HasCutSite("AGATCT", seq)
+
 def ReadGenomeWindowsFromPBI( fns, tList ):
     # Conver the target-list to a dictionary for faster searching
     cov = defaultdict(int)
@@ -177,7 +180,8 @@ def SearchSequence( seq ):
            "BamH1": HasBamH1( seq ),
            "Spe1" : HasSpe1( seq ),
            "Acc1" : HasAcc1( seq ),
-           "Kpn1" : HasKpn1( seq )}
+           "Kpn1" : HasKpn1( seq ),
+           "Bgl2" : HasBgl2( seq )}
     return res
 
 def ResultsToName( reDict ):
@@ -218,12 +222,12 @@ def SummarizeRestrictionData( indexedFasta, windows, adps ):
 def WriteSummaryCsv( outputPrefix, summaries ):
     """Write a summary of our results to CSV for downstream QC"""
     with open( outputPrefix + ".cut_sites.csv", 'w') as handle:
-        handle.write("HoleNumber,Chromosome,Start,End,Target,LeftEcoR1,LeftEcoRV,LeftBamH1,LeftSpe1,LeftAcc1,LeftKpn1,RightEcoRI,RightEcoRV,RightBamH1,RightSpe1,RightAcc1,RightKpn1\n")
+        handle.write("HoleNumber,Chromosome,Start,End,Target,LeftEcoR1,LeftEcoRV,LeftBamH1,LeftSpe1,LeftAcc1,LeftKpn1,LeftBgl2,RightEcoRI,RightEcoRV,RightBamH1,RightSpe1,RightAcc1,RightKpn1,RightBgl2\n")
 
         for hn, tid, s, e, target, left, right in summaries:
-            handle.write("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},{14},{15},{16}\n".format(hn, tid, s, e, target,
-                                                                                            left['EcoR1'],  left['EcoR5'],  left['BamH1'],  left['Spe1'],  left['Acc1'],  left['Kpn1'],
-                                                                                            right['EcoR1'], right['EcoR5'], right['BamH1'], right['Spe1'], right['Acc1'], right['Kpn1']))
+            handle.write("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},{14},{15},{16},{17},{18}\n".format(hn, tid, s, e, target,
+                                                                                            left['EcoR1'],  left['EcoR5'],  left['BamH1'],  left['Spe1'],  left['Acc1'],  left['Kpn1'], left['Bgl2'],
+                                                                                            right['EcoR1'], right['EcoR5'], right['BamH1'], right['Spe1'], right['Acc1'], right['Kpn1'], right['Bgl2']))
 
 def TabulateRestrictionTable( summaries ):
     """Tabulate our cut-sites combinations and plot them as a table"""
@@ -256,7 +260,7 @@ def PlotRestrictionCountsTable( outputPrefix, counts ):
     rows.append( finalRow )
 
     # Plot the results as a table
-    fig = plt.figure(frameon=False, figsize=(8, 4.44))
+    fig = plt.figure(frameon=False, figsize=(8, 5))
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis('off')
     t = ax.table(cellText=rows,
@@ -303,7 +307,7 @@ def PlotRestrictionFracsTable( outputPrefix, counts, precision=2 ):
     rows.append( finalRow )
 
     # Plot the results as a table
-    fig = plt.figure(frameon=False, figsize=(8, 4.44))
+    fig = plt.figure(frameon=False, figsize=(8, 5))
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis('off')
     t = ax.table(cellText=rows,
