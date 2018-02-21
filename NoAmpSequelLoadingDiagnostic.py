@@ -42,8 +42,11 @@ import json
 import re
 from collections import defaultdict
 
+import numpy as np
 import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
+
+import seaborn as sns
 
 from pbcore.io import IndexedBamReader, PacBioBamIndex, IndexedFastaReader, FastaRecord
 
@@ -321,6 +324,7 @@ def PlotAdapterEcoR1Table( outputPrefix, summaries ):
     t.scale(1, 3)
     pltFilename = "{0}_adapter_pairs.png".format(outputPrefix.lower())
     plt.savefig(pltFilename, bbox='tight')
+    plt.close()
 
     p = {"caption": "Table of Adapter & EcoR1 Counts",
            "image": pltFilename,
@@ -375,6 +379,7 @@ def PlotAdapterOnTargetTable( outputPrefix, summaries ):
     t.scale(1, 3)
     pltFilename = "{0}_adapter_ontarget.png".format(outputPrefix.lower())
     plt.savefig(pltFilename, bbox='tight')
+    plt.close()
 
     p = {"caption": "Table of Adapter & OnTarget Counts",
            "image": pltFilename,
@@ -407,6 +412,7 @@ def PlotInternalEcoR1Count( outputPrefix, summaries ):
     t.scale(1, 3)
     pltFilename = "{0}_internal_ecoR1.png".format(outputPrefix.lower())
     plt.savefig(pltFilename, bbox='tight')
+    plt.close()
 
     p = {"caption": "Table of Internal EcoR1 Counts",
            "image": pltFilename,
@@ -414,6 +420,37 @@ def PlotInternalEcoR1Count( outputPrefix, summaries ):
               "id": "{0} - Internal EcoR1 Counts".format(outputPrefix),
            "title": "{0} - InternalEcoR1Counts".format(outputPrefix)}
     return p
+
+def PlotInsertSizeHistogram( outputPrefix, summaries ):
+    sizes = defaultdict(list)
+    for row in summaries:
+        size = row[4]
+        target = row[5]
+        sizes[target].append( size )
+
+    # Convert our sizes into a jagged array, starting with off-targets
+    labels = ["OFF"]
+    sizeList = [np.array(sizes["OFF"])]
+    for k in sorted(sizes.keys()):
+        if k != "OFF":
+            labels.append( k )
+            sizeList.append( np.array(sizes[k]) )
+
+    # Plot the results as a table
+    sns.kdeplot(sizes["OFF"], shade=True, label="OFF")
+    for k in sorted(sizes.keys()):
+        if k != "OFF":
+            sns.kdeplot(sizes[k], shade=True, label=k)
+    plt.xlim(0, 8000)
+    plt.ylim(0, 0.001)
+    pltFilename = "{0}_insert_sizes.png".format(outputPrefix.lower())
+    plt.savefig(pltFilename)
+
+    p = {"caption": "Distribution of Insert Sizes",
+           "image": pltFilename,
+            "tags": [],
+              "id": "{0} - Insert Size Distribution".format(outputPrefix),
+           "title": "{0} - InsertSizeDistribution".format(outputPrefix)}
 
 def WriteReportJson( plotList=[], tableList=[] ):
     reportDict = {"plots":plotList, "tables":tableList}
@@ -426,7 +463,8 @@ windows   = ReadGenomeWindowsFromPBI( [inputFile], TARGETS )
 adps      = ReadAdaptersFromScraps( scrapsBam, windows )
 summaries = SummarizeData( indexedFasta, windows, adps )
 WriteSummaryCsv( outputPrefix, summaries )
+p4 = PlotInsertSizeHistogram( outputPrefix, summaries )
 p1 = PlotAdapterEcoR1Table( outputPrefix, summaries )
 p2 = PlotAdapterOnTargetTable( outputPrefix, summaries )
 p3 = PlotInternalEcoR1Count( outputPrefix, summaries )
-WriteReportJson( [p1, p2, p3] )
+WriteReportJson( [p1, p2, p3, p4] )
