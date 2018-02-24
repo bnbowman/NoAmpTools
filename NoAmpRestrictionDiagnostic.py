@@ -1,4 +1,4 @@
-#! /pbi/dept/secondary/builds/links/current_develop_smrttools-cleanbuild_installdir/private/otherbins/all/bin/python
+#! /usr/bin/env python
 
 ## Copyright (c) 2017, Pacific Biosciences of California, Inc.
 ##
@@ -46,7 +46,7 @@ import string
 import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
-from pbcore.io import IndexedBamReader, PacBioBamIndex, IndexedFastaReader, FastaRecord
+from pbcore.io import IndexedBamReader, PacBioBamIndex, IndexedFastaReader, FastaRecord, openDataSet
 import ConsensusCore2 as cc
 
 COMPLEMENT = string.maketrans("ACGTacgt-", "TGCAtgca-")
@@ -154,9 +154,23 @@ def ReadGenomeWindowsFromPBI( fns, tList ):
     return sorted(v for k,v in windows.iteritems())
 
 def ReadAdaptersFromScraps( bam ):
+    handles = []
+    if bam.lower().endswith( ".scraps.bam" ):
+        handles.append( IndexedBamReader( bam ) )
+    else:
+        # Iterate through each external resource, looking for scraps files to read
+        ds = openDataSet( bam )
+        for er in ds.externalResources:
+            try:
+                handle = IndexedBamReader(er.scraps)
+            except:
+                continue
+            handles.append( handle )
+
     adps  = defaultdict(int)    
     polyA = defaultdict(int)
-    with IndexedBamReader( bam ) as handle:
+    for handle in handles:
+        # Parse the scraps.bam as usual
         for record in handle:
             if record.scrapType != "A":
                 continue
@@ -281,7 +295,7 @@ def PlotRestrictionCountsTable( outputPrefix, counts ):
 def PlotRestrictionFracsTable( outputPrefix, counts, precision=2 ):
     """Tabulate our cut-sites combinations and plot them as a table"""
     ids = ["None"] + sorted(SearchSequence("NNNNNNNNNNN").keys())
-    total = 0.0
+    total = 0.000001
     for leftRE in ids:
         if leftRE == "Mixed": continue
         for rightRE in ids:

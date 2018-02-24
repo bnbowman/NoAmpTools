@@ -38,6 +38,7 @@
 ## Author: Brett Bowman
 
 import sys
+
 import json
 import re
 from collections import defaultdict
@@ -48,7 +49,7 @@ import matplotlib.pyplot as plt
 
 import seaborn as sns
 
-from pbcore.io import IndexedBamReader, PacBioBamIndex, IndexedFastaReader, FastaRecord
+from pbcore.io import IndexedBamReader, PacBioBamIndex, IndexedFastaReader, FastaRecord, openDataSet
 
 import ConsensusCore2 as cc
 
@@ -183,28 +184,41 @@ def ReadGenomeWindowsFromPBI( fns, tList ):
     return windows
 
 def ReadAdaptersFromScraps( bam, windows ):
-    adps = defaultdict(list)
-    with IndexedBamReader( bam ) as handle:
-        for record in handle:
-            # Skip non-adapter scraps
-            if record.scrapType != "A":
-                continue
-            # Skip records from ZMWs without alignments that pass QCs
-            hn  = record.holeNumber
+    handles = []
+    if bam.lower().endswith( ".scraps.bam" ):
+        handles.append( IndexedBamReader( bam ) )
+    else:
+        # Iterate through each external resource, looking for scraps files to read
+        ds = openDataSet( bam )
+        for er in ds.externalResources:
             try:
-                qS, qE, _, _, _, _, _ = windows[hn]
+                handle = IndexedBamReader(er.scraps)
             except:
                 continue
-            # Skip records for ZMWs other than the one selected for it's alignment
-            if record.qStart not in [qS, qE] and record.qEnd not in [qS, qE]:
-                continue
-            # If we made it this far, record the position and type of adapter
-            seq = record.peer.seq
-            tFrac = sum(1 for b in seq if b == "T") / float(len(seq))
-            if tFrac < MIN_T:
-                adps[hn].append( (record.qStart, "TC6") )
-            else:
-                adps[hn].append( (record.qStart, "POLYA") )
+            handles.append( handle )
+   
+    adps = defaultdict(list)
+    for handle in handles: 
+        with IndexedBamReader( bam ) as handle:
+            for record in handle:
+                if record.scrapType != "A":
+                    continue
+                hn  = record.holeNumber
+                # Skip records without alignments that passed QC
+                try:
+                    qS, qE, _, _, _, _, _ = windows[hn]
+                except:
+                    continue
+                # Skip records for ZMWs other than the one selected for it's alignment
+                if record.qStart not in [qS, qE] and record.qEnd not in [qS, qE]:
+                    continue
+                # If we made it this far, record the position and type of adapter
+                seq = record.peer.seq
+                tFrac = sum(1 for b in seq if b == "T") / float(len(seq))
+                if tFrac < MIN_T:
+                    adps[hn].append( (record.qStart, "TC6") )
+                else:
+                    adps[hn].append( (record.qStart, "POLYA") )
 
     # Convert our counts into a T/F depending on whether there are polyAs
     results = {}
@@ -271,7 +285,7 @@ def SummarizeData( indexedFasta, windows, adps ):
     return sorted(summaries)
 
 def WriteSummaryCsv( outputPrefix, summaries ):
-    with open(outputPrefix + ".loading.csv", 'w') as handle:
+    with open(outputPrefix.lower() + ".loading.csv", 'w') as handle:
         handle.write("HoleNumber,Chromosome,Start,End,InsertSize,Target,PolyARegion,MaxPolyARegion,TotalPolyARegion,LeftAdpTc6,RightAdpTc6,LeftAdpPolyA,RightAdpPolyA,LeftEcoR1,InsideEcoR1,RightEcoR1,LeftRna,LeftRnaSide,LeftRnaAcc,RightRna,RightRnaSide,RightRna,HasPolyA,HasLeft,HasRight\n")
         for row in summaries:
             handle.write(",".join(str(s) for s in row) + "\n")
@@ -288,7 +302,7 @@ def RowToSortedSummaryString( row ):
 
 def PlotAdapterEcoR1Table( outputPrefix, summaries ):
     counts = defaultdict(int)
-    total = 0.0
+    total = 0.000001
     for row in summaries:
         leftTc6, rightTc6, leftPolyA, rightPolyA = row[9:13]
         leftEcoR1, insideEcoR1, rightEcoR1 = row[13:16]
@@ -335,7 +349,7 @@ def PlotAdapterEcoR1Table( outputPrefix, summaries ):
 
 def PlotAdapterOnTargetTable( outputPrefix, summaries ):
     counts = defaultdict(int)
-    total = 0.0
+    total = 0.000001
     for row in summaries:
         target = "False" if row[5] == "OFF" else "True"
         leftTc6, rightTc6, leftPolyA, rightPolyA = row[9:13]
@@ -390,7 +404,7 @@ def PlotAdapterOnTargetTable( outputPrefix, summaries ):
 
 def PlotInternalEcoR1Count( outputPrefix, summaries ):
     counts = defaultdict(int)
-    total = 0.0
+    total = 0.000001
     for row in summaries:
         insideEcoR1 = row[14]
         counts[insideEcoR1] += 1
