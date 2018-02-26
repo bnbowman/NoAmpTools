@@ -199,26 +199,25 @@ def ReadAdaptersFromScraps( bam, windows ):
    
     adps = defaultdict(list)
     for handle in handles: 
-        with IndexedBamReader( bam ) as handle:
-            for record in handle:
-                if record.scrapType != "A":
-                    continue
-                hn  = record.holeNumber
-                # Skip records without alignments that passed QC
-                try:
-                    qS, qE, _, _, _, _, _ = windows[hn]
-                except:
-                    continue
-                # Skip records for ZMWs other than the one selected for it's alignment
-                if record.qStart not in [qS, qE] and record.qEnd not in [qS, qE]:
-                    continue
-                # If we made it this far, record the position and type of adapter
-                seq = record.peer.seq
-                tFrac = sum(1 for b in seq if b == "T") / float(len(seq))
-                if tFrac < MIN_T:
-                    adps[hn].append( (record.qStart, "TC6") )
-                else:
-                    adps[hn].append( (record.qStart, "POLYA") )
+        for record in handle:
+            if record.scrapType != "A":
+                continue
+            hn  = record.holeNumber
+            # Skip records without alignments that passed QC
+            try:
+                qS, qE, _, _, _, _, _ = windows[hn]
+            except:
+                continue
+            # Skip records for ZMWs other than the one selected for it's alignment
+            if record.qStart not in [qS, qE] and record.qEnd not in [qS, qE]:
+                continue
+            # If we made it this far, record the position and type of adapter
+            seq = record.peer.seq
+            tFrac = sum(1 for b in seq if b == "T") / float(len(seq))
+            if tFrac < MIN_T:
+                adps[hn].append( (record.qStart, "TC6") )
+            else:
+                adps[hn].append( (record.qStart, "POLYA") )
 
     # Convert our counts into a T/F depending on whether there are polyAs
     results = {}
