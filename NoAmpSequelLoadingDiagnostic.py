@@ -452,7 +452,7 @@ def PlotInsertSizeHistogram( outputPrefix, summaries ):
     # Plot the results as a table
     sns.kdeplot(sizes["OFF"], shade=True, label="OFF")
     for k in sorted(sizes.keys()):
-        if k != "OFF":
+        if k != "OFF" and len(sizes[k]) >= 10:
             sns.kdeplot(sizes[k], shade=True, label=k)
     plt.xlim(0, 8000)
     plt.ylim(0, 0.001)
