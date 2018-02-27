@@ -235,7 +235,7 @@ def SummarizeRestrictionData( indexedFasta, windows, adps ):
 
 def WriteSummaryCsv( outputPrefix, summaries ):
     """Write a summary of our results to CSV for downstream QC"""
-    with open( outputPrefix + ".cut_sites.csv", 'w') as handle:
+    with open( outputPrefix.lower() + ".cut_sites.csv", 'w') as handle:
         handle.write("HoleNumber,Chromosome,Start,End,Target,LeftEcoR1,LeftEcoRV,LeftBamH1,LeftSpe1,LeftAcc1,LeftKpn1,LeftBgl2,RightEcoRI,RightEcoRV,RightBamH1,RightSpe1,RightAcc1,RightKpn1,RightBgl2\n")
 
         for hn, tid, s, e, target, left, right in summaries:
