@@ -38,6 +38,7 @@
 ## Author: Brett Bowman
 
 import sys
+import json
 from collections import defaultdict
 
 import matplotlib; matplotlib.use('agg')
@@ -93,42 +94,66 @@ def PlotRepeats( csvs, tpls, name ):
     plotName = "{0}_zmws.png".format(name.lower())
     g = sns.FacetGrid(data, row="Barcode", size=2.0, aspect=6, xlim=(0,maxRpt))
     g = g.map(plt.plot, "variable", "values", color="darkblue")
-    for i, (bcIdx, counts) in enumerate(tpls.iteritems()):
+    for i, (bc, counts) in enumerate(tpls.iteritems()):
         ax = g.facet_axis(i, 0)
         for ct in counts:
             ax.axvline(x=ct, color="red", ls='--')
     g.set_axis_labels("Repeat Count", "Density")
     plt.savefig(plotName)
 
-httSeqs = defaultdict(list)
-httCsvs = []
-fmrSeqs = defaultdict(list)
-fmrCsvs = []
+    p = {"caption": "Repeat Analysis Probability Mass Plot",
+           "image": plotName,
+            "tags": [],
+              "id": "{0} - Probability Mass Distribution".format(name),
+           "title": "{0} - ProbabilityMassDistribution".format(name)}
+    return p
 
-for fn in fns:
-    if fn.endswith('.fastq'):
-        for line in open(fn):
-            if line.startswith('@Barcode'):
-                bc = int(line.strip().split('_')[0][8:].split('--')[0])
-                tpl = line.strip().split()[-1]
-                ct = int(tpl.split('x')[-1])
-                if tpl.startswith('CAGx') or tpl.startswith('CTGx'):
-                    httSeqs[bc].append( ct )
-                if tpl.startswith('CGGx') or tpl.startswith('GCCx'):
-                    fmrSeqs[bc].append( ct )
-    elif "_zmws" in fn and fn.endswith('HTT.csv'):
-        httCsvs.append(fn)
-    elif "_zmws" in fn and fn.endswith('FMR1.csv'):
-        fmrCsvs.append(fn)
-    else:
-        raise SystemExit("Invalid input file! '{0}' is not a FASTQ or ZMW_CSV".format(fn))
+def SortFiles( fns ):
+    httSeqs = defaultdict(list)
+    httCsvs = []
+    fmrSeqs = defaultdict(list)
+    fmrCsvs = []
 
+    for fn in fns:
+        if fn.endswith('.fastq'):
+            for line in open(fn):
+                if line.startswith('@Barcode'):
+                    bc = line.strip().split('_')[0][8:].split('--')[0]
+                    tpl = line.strip().split()[-1]
+                    ct = int(tpl.split('x')[-1])
+                    if tpl.startswith('CAGx') or tpl.startswith('CTGx'):
+                        httSeqs[bc].append( ct )
+                    if tpl.startswith('CGGx') or tpl.startswith('GCCx'):
+                        fmrSeqs[bc].append( ct )
+        elif "_zmws" in fn and fn.endswith('HTT.csv'):
+            httCsvs.append(fn)
+        elif "_zmws" in fn and fn.endswith('FMR1.csv'):
+            fmrCsvs.append(fn)
+        else:
+            raise SystemExit("Invalid input file! '{0}' is not a FASTQ or ZMW_CSV".format(fn))
+
+    return httSeqs, httCsvs, fmrSeqs, fmrCsvs
+
+def WriteReportJson( plotList=[], tableList=[] ):
+    reportDict = {"plots":plotList, "tables":tableList}
+    reportStr = json.dumps(reportDict, indent=1)
+    with open("report.json", 'w') as handle:
+        handle.write(reportStr)
+
+
+httSeqs, httCsvs, fmrSeqs, fmrCsvs = SortFiles( fns )
+
+plotList = []
 if len(httSeqs) > 0 and len(httCsvs) > 0:
-    PlotRepeats(httCsvs, httSeqs, "HTT")
+    p = PlotRepeats(httCsvs, httSeqs, "HTT")
+    plotList.append( p )
 elif len(httSeqs) > 0 or len(httCsvs) > 0:
     raise Warning("Input Error! Recieved HTT sequences but is no ZMW scores, skipping...")
 
 if len(fmrSeqs) > 0 and len(fmrCsvs) > 0:
-    PlotRepeats(fmrCsvs, fmrSeqs, "FMR1")
+    p = PlotRepeats(fmrCsvs, fmrSeqs, "FMR1")
+    plotList.append( p )
 elif len(fmrSeqs) > 0 or len(fmrCsvs) > 0:
     raise Warning("Input Error! Recieved FMR1 sequences but is no ZMW scores, skipping...")
+
+WriteReportJson( plotList )
