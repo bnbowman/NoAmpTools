@@ -464,6 +464,7 @@ def PlotInsertSizeHistogram( outputPrefix, summaries ):
             "tags": [],
               "id": "{0} - Insert Size Distribution".format(outputPrefix),
            "title": "{0} - InsertSizeDistribution".format(outputPrefix)}
+    return p
 
 def WriteReportJson( plotList=[], tableList=[] ):
     reportDict = {"plots":plotList, "tables":tableList}
