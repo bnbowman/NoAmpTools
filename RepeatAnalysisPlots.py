@@ -49,7 +49,8 @@ import matplotlib.pyplot as plt
 
 plt.style.use('ggplot')
 
-fns = sys.argv[1:]
+outputPrefix = sys.argv[1]
+fns          = sys.argv[2:]
 
 def RepeatCounts(df):
     return [int(v.split('x')[-1]) for v in df.columns.values[1:]]
@@ -88,10 +89,10 @@ def CsvsToDataFrame( csvs ):
             data = data.append(pd.DataFrame(raw))
     return data
 
-def PlotRepeats( csvs, tpls, name ):
+def PlotRepeats( outputPrefix, name, csvs, tpls ):
     data = CsvsToDataFrame( csvs )
     maxRpt = MaxRepeatCount( tpls )
-    plotName = "{0}_zmws.png".format(name.lower())
+    plotName = "{0}_{1}_zmws.png".format(outputPrefix.lower(), name.lower())
     g = sns.FacetGrid(data, row="Barcode", size=2.0, aspect=6, xlim=(0,maxRpt))
     g = g.map(plt.plot, "variable", "values", color="darkblue")
     for i, (bc, counts) in enumerate(tpls.iteritems()):
@@ -145,13 +146,13 @@ httSeqs, httCsvs, fmrSeqs, fmrCsvs = SortFiles( fns )
 
 plotList = []
 if len(httSeqs) > 0 and len(httCsvs) > 0:
-    p = PlotRepeats(httCsvs, httSeqs, "HTT")
+    p = PlotRepeats(outputPrefix, "HTT", httCsvs, httSeqs)
     plotList.append( p )
 elif len(httSeqs) > 0 or len(httCsvs) > 0:
     raise Warning("Input Error! Recieved HTT sequences but is no ZMW scores, skipping...")
 
 if len(fmrSeqs) > 0 and len(fmrCsvs) > 0:
-    p = PlotRepeats(fmrCsvs, fmrSeqs, "FMR1")
+    p = PlotRepeats(outputPrefix, "FMR1", fmrCsvs, fmrSeqs)
     plotList.append( p )
 elif len(fmrSeqs) > 0 or len(fmrCsvs) > 0:
     raise Warning("Input Error! Recieved FMR1 sequences but is no ZMW scores, skipping...")
