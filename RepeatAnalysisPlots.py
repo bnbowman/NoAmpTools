@@ -83,7 +83,7 @@ def MaxRepeatSize( tpls ):
     maxV = 0
     for k, tplList in tpls.iteritems():
         maxV = max(maxV, max(RepeatSize(tpl) for tpl in tplList))
-    maxV = ((maxV / 10) + 2) * 10
+    maxV = ((maxV / 10) + 6) * 10
     return maxV 
 
 def LogAddExp( row ):
