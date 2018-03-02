@@ -72,7 +72,7 @@ def MaxRepeatCount( tpls ):
 def CsvsToDataFrame( csvs ):
     data = None
     for fn in csvs:
-        barcode = fn.split('.')[-3]
+        barcode = fn.split('.')[-3].split('-')[0]
         df = pd.read_csv(fn)
         counts = RepeatCounts(df)
         df["SumLL"] = df.apply(LogAddExp, axis=1)
@@ -95,7 +95,7 @@ def PlotRepeats( outputPrefix, name, csvs, tpls ):
     plotName = "{0}_{1}_zmws.png".format(outputPrefix.lower(), name.lower())
     g = sns.FacetGrid(data, row="Barcode", size=2.0, aspect=6, xlim=(0,maxRpt))
     g = g.map(plt.plot, "variable", "values", color="darkblue")
-    for i, (bc, counts) in enumerate(tpls.iteritems()):
+    for i, (bc, counts) in enumerate(sorted(tpls.iteritems())):
         ax = g.facet_axis(i, 0)
         for ct in counts:
             ax.axvline(x=ct, color="red", ls='--')
