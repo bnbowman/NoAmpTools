@@ -52,8 +52,39 @@ plt.style.use('ggplot')
 outputPrefix = sys.argv[1]
 fns          = sys.argv[2:]
 
+def RepeatCount( tpl ):
+    totalCount = 0
+    for elem in tpl.split('_'):
+        seq, count = elem.split('x')[:2]
+        totalCount += int(count)
+    return totalCount
+
 def RepeatCounts(df):
-    return [int(v.split('x')[-1]) for v in df.columns.values[1:]]
+    return [RepeatCount(v) for v in df.columns.values[1:]]
+
+def MaxRepeatCount( tpls ):
+    maxV = 0
+    for k, tplList in tpls.iteritems():
+        maxV = max(maxV, max(RepeatCount(tpl) for tpl in tplList))
+    maxV = ((maxV / 10) + 2) * 10
+    return maxV  
+
+def RepeatSize( tpl ):
+    size = 0
+    for elem in tpl.split('_'):
+        seq, count = elem.split('x')[:2]
+        size += len(seq) * int(count)
+    return size
+
+def RepeatSizes( columns ):
+    return [RepeatSize(tpl) for tpl in columns]
+
+def MaxRepeatSize( tpls ):
+    maxV = 0
+    for k, tplList in tpls.iteritems():
+        maxV = max(maxV, max(RepeatSize(tpl) for tpl in tplList))
+    maxV = ((maxV / 10) + 2) * 10
+    return maxV 
 
 def LogAddExp( row ):
     return reduce(np.logaddexp, [l for l in row[1:] if np.isfinite(l)])
@@ -61,13 +92,6 @@ def LogAddExp( row ):
 def LogToProb( row ):
     sumLL = row[-1]
     return pd.Series([np.exp(x - sumLL) for x in row[1:-1]])
-
-def MaxRepeatCount( tpls ):
-    maxV = 0
-    for k, v in tpls.iteritems():
-        maxV = max(maxV, max(v))
-    maxV = ((maxV / 10) + 2) * 10
-    return maxV
 
 def CsvsToDataFrame( csvs ):
     data = None
@@ -89,16 +113,46 @@ def CsvsToDataFrame( csvs ):
             data = data.append(pd.DataFrame(raw))
     return data
 
-def PlotRepeats( outputPrefix, name, csvs, tpls ):
-    data = CsvsToDataFrame( csvs )
-    maxRpt = MaxRepeatCount( tpls )
+def CsvsToHistogramDataFrame( csvs ):
+    data = None
+    for fn in csvs:
+        barcode = fn.split('.')[-3].split('-')[0]
+        df = pd.read_csv(fn)
+        bestTpls = []
+        for rowIdx, row in df.iterrows():
+            maxCol = None
+            maxVal = None
+            for col, val in row.iteritems():
+                if col == "ZmwId":
+                    continue
+                if maxVal is None or val > maxVal:
+                    maxCol = col
+                    maxVal = val
+            if np.isfinite(maxVal):
+                bestTpls.append( maxCol )
+        bestSizes = RepeatSizes(bestTpls)
+
+        raw = {"Sizes": pd.Series(bestSizes),
+               "Barcode": barcode}
+        if data is None:
+            data = pd.DataFrame(raw)
+        else:
+            data = data.append(pd.DataFrame(raw))
+    return data
+
+def PlotRepeatPMF( outputPrefix, name, tpls, csvs ):
     plotName = "{0}_{1}_zmws.png".format(outputPrefix.lower(), name.lower())
+    maxRpt = MaxRepeatCount( tpls )
+    data = CsvsToDataFrame( csvs )
     g = sns.FacetGrid(data, row="Barcode", size=2.0, aspect=6, xlim=(0,maxRpt))
     g = g.map(plt.plot, "variable", "values", color="darkblue")
-    for i, (bc, counts) in enumerate(sorted(tpls.iteritems())):
+    for i, (bc, tplList) in enumerate(sorted(tpls.iteritems())):
         ax = g.facet_axis(i, 0)
-        for ct in counts:
+        ylim = ax.get_ylim()
+        for tpl in tplList:
+            ct = RepeatCount(tpl)
             ax.axvline(x=ct, color="red", ls='--')
+            ax.text(ct+0.4, ylim[1]-0.07, ct, fontsize=15)
     g.set_axis_labels("Repeat Count", "Density")
     plt.savefig(plotName)
 
@@ -107,6 +161,21 @@ def PlotRepeats( outputPrefix, name, csvs, tpls ):
             "tags": [],
               "id": "{0} - Probability Mass Distribution for {1}".format(outputPrefix, name),
            "title": "{0} - Probability Mass Distribution for {1}".format(outputPrefix, name)}
+    return p
+
+def PlotRepeatHistogram( outputPrefix, name, tpls, csvs ):
+    plotName = "{0}_{1}_histogram.png".format(outputPrefix.lower(), name.lower())
+    maxSize = MaxRepeatSize( tpls )
+    data = CsvsToHistogramDataFrame( csvs )
+    g = sns.FacetGrid(data, row="Barcode", size=2.0, aspect=6, xlim=(0,maxSize))
+    g = g.map(plt.hist, "Sizes", density=True, bins=list(range(0,maxSize+1,3)), color="darkblue")
+    g.set_axis_labels("Repeat Region Sizes", "Density")
+    plt.savefig(plotName)
+    p = {"caption": "Repeat Analysis Region Size Histogram",
+           "image": plotName,
+            "tags": [],
+              "id": "{0} - Repeat Region Size Histogram for {1}".format(outputPrefix, name),
+           "title": "{0} - Repeat Region Size Histogram for {1}".format(outputPrefix, name)}
     return p
 
 def SortFiles( fns ):
@@ -121,11 +190,10 @@ def SortFiles( fns ):
                 if line.startswith('@Barcode'):
                     bc = line.strip().split('_')[0][8:].split('--')[0]
                     tpl = line.strip().split()[-1]
-                    ct = int(tpl.split('x')[-1])
                     if tpl.startswith('CAGx') or tpl.startswith('CTGx'):
-                        httSeqs[bc].append( ct )
+                        httSeqs[bc].append( tpl )
                     if tpl.startswith('CGGx') or tpl.startswith('GCCx'):
-                        fmrSeqs[bc].append( ct )
+                        fmrSeqs[bc].append( tpl )
         elif "_zmws" in fn and fn.endswith('HTT.csv'):
             httCsvs.append(fn)
         elif "_zmws" in fn and fn.endswith('FMR1.csv'):
@@ -146,14 +214,18 @@ httSeqs, httCsvs, fmrSeqs, fmrCsvs = SortFiles( fns )
 
 plotList = []
 if len(httSeqs) > 0 and len(httCsvs) > 0:
-    p = PlotRepeats(outputPrefix, "HTT", httCsvs, httSeqs)
-    plotList.append( p )
+    p1 = PlotRepeatPMF(outputPrefix, "HTT", httSeqs, httCsvs)
+    p2 = PlotRepeatHistogram(outputPrefix, "HTT", httSeqs, httCsvs)
+    plotList.append( p1 )
+    plotList.append( p2 )
 elif len(httSeqs) > 0 or len(httCsvs) > 0:
     raise Warning("Input Error! Recieved HTT sequences but is no ZMW scores, skipping...")
 
 if len(fmrSeqs) > 0 and len(fmrCsvs) > 0:
-    p = PlotRepeats(outputPrefix, "FMR1", fmrCsvs, fmrSeqs)
-    plotList.append( p )
+    p1 = PlotRepeatPMF(outputPrefix, "FMR1", fmrSeqs, fmrCsvs)
+    p2 = PlotRepeatHistogram(outputPrefix, "FMR1", fmrSeqs, fmrCsvs)
+    plotList.append( p1 )
+    plotList.append( p2 )
 elif len(fmrSeqs) > 0 or len(fmrCsvs) > 0:
     raise Warning("Input Error! Recieved FMR1 sequences but is no ZMW scores, skipping...")
 
