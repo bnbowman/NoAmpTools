@@ -105,8 +105,8 @@ def PlotRepeats( outputPrefix, name, csvs, tpls ):
     p = {"caption": "Repeat Analysis Probability Mass Plot",
            "image": plotName,
             "tags": [],
-              "id": "{0} - Probability Mass Distribution".format(name),
-           "title": "{0} - ProbabilityMassDistribution".format(name)}
+              "id": "{0} - Probability Mass Distribution for {1}".format(outputPrefix, name),
+           "title": "{0} - Probability Mass Distribution for {1}".format(outputPrefix, name)}
     return p
 
 def SortFiles( fns ):
