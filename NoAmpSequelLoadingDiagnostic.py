@@ -69,7 +69,7 @@ scrapsBam    = sys.argv[4]
 cfg = cc.AlignConfig(cc.AlignParams.Default(), 1);
 
 ## Locus,ChrName,ChrIdx,GeneStart,RegionStart,RegionEnd,GeneEnd
-TARGETS = [["HTT", "chr4", 4, 3075691, 3076603, 3076661, 3076815],
+TARGETS = [["HTT", "chr4", 4, 3074344, 3076603, 3076661, 3077078],
            ["FMR1", "chrX", 23, 146993123, 146993568, 146993629, 146994131],
            ["ALS", "chr9", 9, 27572985, 27573522, 27573541, 27574014],
            ["FUCHS", "chr18", 18, 53251995, 53253386, 53253458, 53253577],
@@ -81,6 +81,16 @@ GUIDES = {"FMR1"     : "AGAGGCCGAACTGGGATAAC",
           "FMR1_201" : "CGCGCGTCTGTCTTTCGACC",
           "HTT"      : "AGCGGGCCCAAACTCACGGT",
           "HTT_SQ1"  : "CTTATTAACAGCAGAGAACT"}
+
+def TargetsToTargetDict( targets ):
+    tDict = defaultdict(list)
+    for t in targets:
+        if t[2] <= 22:
+            target_tId = t[2]-1
+        else:
+            target_tId = t[2]
+        tDict[target_tId].append( t )
+    return tDict
 
 def ScoreCas9Site( seq ):
     maxKey = None
@@ -123,7 +133,7 @@ def LargestAsAndTs( seq ):
     grps = [g for g in grps if g >= 10]
     return grps
 
-def ReadGenomeWindowsFromPBI( fns, tList ):
+def ReadGenomeWindowsFromPBI( fns, tDict ):
     # Conver the target-list to a dictionary for faster searching
     cov = defaultdict(int)
     acc = defaultdict(float)
@@ -170,10 +180,8 @@ def ReadGenomeWindowsFromPBI( fns, tList ):
             tCov    = tEnd - tStart
 
             target = "OFF"
-            for tName, _, tTid, _, tRS, tRE, _ in tList:
-                if tTid != tId:
-                    continue
-                elif tStart < tRS and tEnd > tRE:
+            for tName, _, tTid, _, tRS, tRE, _ in tDict[tId]:
+                if tStart < tRS and tEnd > tRE:
                     target = tName
                     break
 
@@ -445,6 +453,7 @@ def PlotInsertSizeHistogram( outputPrefix, summaries ):
     labels = ["OFF"]
     sizeList = [np.array(sizes["OFF"])]
     for k in sorted(sizes.keys()):
+        print k, len(sizes[k])
         if k != "OFF":
             labels.append( k )
             sizeList.append( np.array(sizes[k]) )
@@ -473,12 +482,14 @@ def WriteReportJson( plotList=[], tableList=[] ):
         handle.write(reportStr)
 
 # Second, tabulate the number of usable reads/ZMWs
-windows   = ReadGenomeWindowsFromPBI( [inputFile], TARGETS )
+tDict     = TargetsToTargetDict( TARGETS )
+windows   = ReadGenomeWindowsFromPBI( [inputFile], tDict )
 adps      = ReadAdaptersFromScraps( scrapsBam, windows )
 summaries = SummarizeData( indexedFasta, windows, adps )
 WriteSummaryCsv( outputPrefix, summaries )
+#p1 = PlotAdapterEcoR1Table( outputPrefix, summaries )
+#p2 = PlotAdapterOnTargetTable( outputPrefix, summaries )
+#p3 = PlotInternalEcoR1Count( outputPrefix, summaries )
 p4 = PlotInsertSizeHistogram( outputPrefix, summaries )
-p1 = PlotAdapterEcoR1Table( outputPrefix, summaries )
-p2 = PlotAdapterOnTargetTable( outputPrefix, summaries )
-p3 = PlotInternalEcoR1Count( outputPrefix, summaries )
-WriteReportJson( [p1, p2, p3, p4] )
+#WriteReportJson( [p1, p2, p3, p4] )
+WriteReportJson( [p4] )
