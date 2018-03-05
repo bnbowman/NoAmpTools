@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-## Copyright (c) 2017, Pacific Biosciences of California, Inc.
+## Copyright (c) 2018, Pacific Biosciences of California, Inc.
 ##
 ## All rights reserved.
 ##
