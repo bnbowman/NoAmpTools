@@ -219,7 +219,7 @@ if len(httSeqs) > 0 and len(httCsvs) > 0:
     plotList.append( p1 )
     plotList.append( p2 )
 elif len(httSeqs) > 0 or len(httCsvs) > 0:
-    raise Warning("Input Error! Recieved HTT sequences but is no ZMW scores, skipping...")
+    raise Warning("Input Error! Recieved HTT sequences but there are no ZMW scores, skipping...")
 
 if len(fmrSeqs) > 0 and len(fmrCsvs) > 0:
     p1 = PlotRepeatPMF(outputPrefix, "FMR1", fmrSeqs, fmrCsvs)
@@ -227,6 +227,6 @@ if len(fmrSeqs) > 0 and len(fmrCsvs) > 0:
     plotList.append( p1 )
     plotList.append( p2 )
 elif len(fmrSeqs) > 0 or len(fmrCsvs) > 0:
-    raise Warning("Input Error! Recieved FMR1 sequences but is no ZMW scores, skipping...")
+    raise Warning("Input Error! Recieved FMR1 sequences but there are ZMW scores, skipping...")
 
 WriteReportJson( plotList )
