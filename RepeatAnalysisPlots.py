@@ -198,17 +198,18 @@ def SortFiles( fns ):
             httCsvs.append(fn)
         elif "_zmws" in fn and fn.endswith('FMR1.csv'):
             fmrCsvs.append(fn)
-        else:
-            raise SystemExit("Invalid input file! '{0}' is not a FASTQ or ZMW_CSV".format(fn))
 
     return httSeqs, httCsvs, fmrSeqs, fmrCsvs
 
 def WriteReportJson( plotList=[], tableList=[] ):
-    reportDict = {"plots":plotList, "tables":tableList}
-    reportStr = json.dumps(reportDict, indent=1)
-    with open("report.json", 'w') as handle:
-        handle.write(reportStr)
-
+    if plotList or tableList:
+        reportDict = {"plots":plotList, "tables":tableList}
+        reportStr = json.dumps(reportDict, indent=1)
+        with open("report.json", 'w') as handle:
+            handle.write(reportStr)
+    else:
+        with open("report.json", 'w') as handle:
+            handle.write("{}")
 
 httSeqs, httCsvs, fmrSeqs, fmrCsvs = SortFiles( fns )
 
