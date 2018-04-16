@@ -1,4 +1,4 @@
-# NoAmpTools v0.11
+# NoAmpTools v0.12.0
 Tools for QC-ing and Plotting outputs from PacBio's NoAmp protocol.  These tools require the following libraries to run successfully:
 
 * matplotlib >= 2.0
