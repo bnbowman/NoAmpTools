@@ -49,6 +49,8 @@ import matplotlib.pyplot as plt
 
 plt.style.use('ggplot')
 
+COLORS = sns.color_palette()
+
 outputPrefix = sys.argv[1]
 fns          = sys.argv[2:]
 
@@ -97,6 +99,7 @@ def CsvsToDataFrame( csvs ):
     data = None
     for fn in csvs:
         barcode = fn.split('.')[-3].split('-')[0]
+        barcode = ''.join(c for c in barcode if c.isalnum())
         df = pd.read_csv(fn)
         counts = RepeatCounts(df)
         df["SumLL"] = df.apply(LogAddExp, axis=1)
@@ -117,6 +120,7 @@ def CsvsToHistogramDataFrame( csvs ):
     data = None
     for fn in csvs:
         barcode = fn.split('.')[-3].split('-')[0]
+        barcode = ''.join(c for c in barcode if c.isalnum())
         df = pd.read_csv(fn)
         bestTpls = []
         for rowIdx, row in df.iterrows():
@@ -144,6 +148,7 @@ def CsvsToCounts( csvs ):
     data = {}
     for fn in csvs:
         barcode = fn.split('.')[-3].split('-')[0]
+        barcode = ''.join(c for c in barcode if c.isalnum())
         df = pd.read_csv(fn)
         counts = RepeatCounts(df)
         data[barcode] = []
@@ -209,7 +214,7 @@ def PlotRepeatDotPlot( outputPrefix, name, tpls, csvs ):
                 x.append( j )
                 y.append( i + 1 )
 
-        plt.scatter(x=x, y=y, color="blue")
+        plt.scatter(x=x, y=y, color=COLORS[1])
         plt.title("Per-ZMW Repeat Estimates for {0}\nBarcode {1}--{1}".format(name, barcode))
         plt.xlabel("Number of Repeat Units")
         plt.ylabel("ZMWs sorted by Repeat Size")
@@ -243,6 +248,7 @@ def SortFiles( fns ):
             for line in open(fn):
                 if line.startswith('@Barcode'):
                     bc = line.strip().split('_')[0][8:].split('--')[0]
+                    bc = ''.join(c for c in bc if c.isalnum())
                     tpl = line.strip().split()[-1]
                     if tpl.startswith('CAGx') or tpl.startswith('CTGx'):
                         httSeqs[bc].append( tpl )
