@@ -140,6 +140,22 @@ def CsvsToHistogramDataFrame( csvs ):
             data = data.append(pd.DataFrame(raw))
     return data
 
+def CsvsToCounts( csvs ):
+    data = {}
+    for fn in csvs:
+        barcode = fn.split('.')[-3].split('-')[0]
+        df = pd.read_csv(fn)
+        counts = RepeatCounts(df)
+        data[barcode] = []
+        for index, row in df.iterrows():
+            row    = list(row)[1:]
+            maxLL  = max(row)
+            maxIdx = row.index(maxLL)
+            count  = counts[maxIdx]
+            data[barcode].append( count )
+        data[barcode] = sorted(data[barcode], reverse=True)
+    return data
+
 def PlotRepeatPMF( outputPrefix, name, tpls, csvs ):
     plotName = "{0}_{1}_zmws.png".format(outputPrefix.lower(), name.lower())
     maxRpt = MaxRepeatCount( tpls )
@@ -155,6 +171,7 @@ def PlotRepeatPMF( outputPrefix, name, tpls, csvs ):
             ax.text(ct+0.4, ylim[1]-0.07, ct, fontsize=15)
     g.set_axis_labels("Repeat Count", "Density")
     plt.savefig(plotName)
+    plt.close()
 
     p = {"caption": "Repeat Analysis Probability Mass Plot",
            "image": plotName,
@@ -171,12 +188,49 @@ def PlotRepeatHistogram( outputPrefix, name, tpls, csvs ):
     g = g.map(plt.hist, "Sizes", density=True, bins=list(range(0,maxSize+1,3)), color="darkblue")
     g.set_axis_labels("Repeat Region Sizes", "Density")
     plt.savefig(plotName)
+    plt.close()
     p = {"caption": "Repeat Analysis Region Size Histogram",
            "image": plotName,
             "tags": [],
               "id": "{0} - Repeat Region Size Histogram for {1}".format(outputPrefix, name),
            "title": "{0} - Repeat Region Size Histogram for {1}".format(outputPrefix, name)}
     return p
+
+def PlotRepeatDotPlot( outputPrefix, name, tpls, csvs ):
+    plots = []
+
+    plotNameRoot = "{0}_{1}_repeats".format(outputPrefix.lower(), name.lower())
+    data = CsvsToCounts( csvs )
+    for barcode, bestTpls in data.iteritems():
+
+        x, y = [], []
+        for i, tplSize in enumerate(bestTpls):
+            for j in range(tplSize):
+                x.append( j )
+                y.append( i + 1 )
+
+        plt.scatter(x=x, y=y, color="blue")
+        plt.title("Per-ZMW Repeat Estimates for {0}\nBarcode {1}--{1}".format(name, barcode))
+        plt.xlabel("Number of Repeat Units")
+        plt.ylabel("ZMWs sorted by Repeat Size")
+
+        # Add vertical lines representing each consensus
+        called = sorted([int(tpl.split('x')[-1]) for tpl in tpls[barcode]])
+        for call in called:
+            plt.axvline(x=call, color="red", ls="--")
+            plt.text(call+0.4, max(y)*0.93, call, fontsize=15, color="black")
+
+        plotName = "{0}.{1}--{1}.png".format(plotNameRoot, barcode)
+        plt.savefig(plotName)
+        plt.close()
+
+        plots.append( {"caption": "Repeat Analysis Per-ZMW Estimated Region Sizes",
+                       "image": plotName,
+                       "tags": [],
+                       "id": "{0} - Repeat Region Size Histogram for {1} ({2}--{2})".format(outputPrefix, name, barcode),
+                       "title": "{0} - Repeat Region Size Histogram for {1} ({2}--{2})".format(outputPrefix, name, barcode)}
+                    )
+    return plots
 
 def SortFiles( fns ):
     httSeqs = defaultdict(list)
@@ -217,16 +271,20 @@ plotList = []
 if len(httSeqs) > 0 and len(httCsvs) > 0:
     p1 = PlotRepeatPMF(outputPrefix, "HTT", httSeqs, httCsvs)
     p2 = PlotRepeatHistogram(outputPrefix, "HTT", httSeqs, httCsvs)
+    p3 = PlotRepeatDotPlot(outputPrefix, "HTT", httSeqs, httCsvs)
     plotList.append( p1 )
     plotList.append( p2 )
+    plotList += p3
 elif len(httSeqs) > 0 or len(httCsvs) > 0:
     raise Warning("Input Error! Recieved HTT sequences but there are no ZMW scores, skipping...")
 
 if len(fmrSeqs) > 0 and len(fmrCsvs) > 0:
     p1 = PlotRepeatPMF(outputPrefix, "FMR1", fmrSeqs, fmrCsvs)
     p2 = PlotRepeatHistogram(outputPrefix, "FMR1", fmrSeqs, fmrCsvs)
+    p3 = PlotRepeatDotPlot(outputPrefix, "FMR1", fmrSeqs, fmrCsvs)
     plotList.append( p1 )
     plotList.append( p2 )
+    plotList += p3
 elif len(fmrSeqs) > 0 or len(fmrCsvs) > 0:
     raise Warning("Input Error! Recieved FMR1 sequences but there are ZMW scores, skipping...")
 
