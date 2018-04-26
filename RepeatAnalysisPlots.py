@@ -225,7 +225,10 @@ def PlotRepeatDotPlot( outputPrefix, name, tpls, csvs ):
             plt.axvline(x=call, color="red", ls="--")
             plt.text(call+0.4, max(y)*0.93, call, fontsize=15, color="black")
 
-        plotName = "{0}.{1}--{1}.png".format(plotNameRoot, barcode)
+        if barcode == "repeatanalysiszmws":
+            plotName = "{0}.{1}.png".format(plotNameRoot, name)
+        else: 
+            plotName = "{0}.{1}--{1}.{2}.png".format(plotNameRoot, barcode, name)
         plt.savefig(plotName)
         plt.close()
 
@@ -242,6 +245,8 @@ def SortFiles( fns ):
     httCsvs = []
     fmrSeqs = defaultdict(list)
     fmrCsvs = []
+    alsSeqs = defaultdict(list)
+    alsCsvs = []
 
     for fn in fns:
         if fn.endswith('.fastq'):
@@ -254,12 +259,16 @@ def SortFiles( fns ):
                         httSeqs[bc].append( tpl )
                     if tpl.startswith('CGGx') or tpl.startswith('GCCx'):
                         fmrSeqs[bc].append( tpl )
+                    if tpl.startswith('GGCCCCx') or tpl.startswith('CCCCGGx'):
+                        alsSeqs[bc].append( tpl )
         elif "_zmws" in fn and fn.endswith('HTT.csv'):
             httCsvs.append(fn)
         elif "_zmws" in fn and fn.endswith('FMR1.csv'):
             fmrCsvs.append(fn)
+        elif "_zmws" in fn and fn.endswith('ALS.csv'):
+            alsCsvs.append(fn)
 
-    return httSeqs, httCsvs, fmrSeqs, fmrCsvs
+    return httSeqs, httCsvs, fmrSeqs, fmrCsvs, alsSeqs, alsCsvs
 
 def WriteReportJson( plotList=[], tableList=[] ):
     if plotList or tableList:
@@ -271,7 +280,7 @@ def WriteReportJson( plotList=[], tableList=[] ):
         with open("report.json", 'w') as handle:
             handle.write("{}")
 
-httSeqs, httCsvs, fmrSeqs, fmrCsvs = SortFiles( fns )
+httSeqs, httCsvs, fmrSeqs, fmrCsvs, alsSeqs, alsCsvs = SortFiles( fns )
 
 plotList = []
 if len(httSeqs) > 0 and len(httCsvs) > 0:
@@ -293,5 +302,15 @@ if len(fmrSeqs) > 0 and len(fmrCsvs) > 0:
     plotList += p3
 elif len(fmrSeqs) > 0 or len(fmrCsvs) > 0:
     raise Warning("Input Error! Recieved FMR1 sequences but there are ZMW scores, skipping...")
+
+if len(alsSeqs) > 0 and len(alsCsvs) > 0:
+    p1 = PlotRepeatPMF(outputPrefix, "ALS", alsSeqs, alsCsvs)
+    p2 = PlotRepeatHistogram(outputPrefix, "ALS", alsSeqs, alsCsvs)
+    p3 = PlotRepeatDotPlot(outputPrefix, "ALS", alsSeqs, alsCsvs)
+    plotList.append( p1 )
+    plotList.append( p2 )
+    plotList += p3
+elif len(alsSeqs) > 0 or len(alsCsvs) > 0:
+    raise Warning("Input Error! Recieved ALS sequences but there are ALS scores, skipping...")
 
 WriteReportJson( plotList )
