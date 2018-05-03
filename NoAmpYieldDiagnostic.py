@@ -51,6 +51,7 @@ from pbcore.io import IndexedBamReader, PacBioBamIndex
 BIN_SIZE  = 2000000
 MIN_ALIGN = 400
 MIN_SNR   = 3.75
+MIN_BQ    = 40
 N_COLOR   = 9
 
 outputPrefix  = sys.argv[1]
@@ -226,6 +227,7 @@ def ReadOnTargetCountsFromPBI( fns, targets ):
 
     hits = {t[0]:defaultdict(int) for t in targets}
     hns = defaultdict(int)
+    bcs = defaultdict(int)
 
     for fn in fns:
         pbi = PacBioBamIndex( fn )
@@ -234,6 +236,13 @@ def ReadOnTargetCountsFromPBI( fns, targets ):
         tStartIdx = pbi.columnNames.index("tStart")
         tEndIdx   = pbi.columnNames.index("tEnd")
         mapQvIdx  = pbi.columnNames.index("mapQV")
+
+        # Get barcode columns if present, otherwise None
+        if "bcForward" in pbi.columnNames:
+            bcIdx = pbi.columnNames.index("bcForward")
+            bqIdx = pbi.columnNames.index("bcQual")
+        else:
+            bcIdx, bqIdx = None, None
 
         for row in pbi:
             # Skip secondary alignments
@@ -246,6 +255,10 @@ def ReadOnTargetCountsFromPBI( fns, targets ):
             tEnd    = row[tEndIdx]
             tCov    = tEnd - tStart
             hns[hn] = max(tCov, hns[hn])
+
+            # Record the barcode
+            if bqIdx and row[bqIdx] >= MIN_BQ:
+                bcs[hn] = row[bcIdx]
 
             # Skip alignments to chromosomes w/ no hits
             tId    = row[tIdIdx]
@@ -263,25 +276,37 @@ def ReadOnTargetCountsFromPBI( fns, targets ):
                     hits[tName][hnMax] = max(tCov, hits[tName][hnMax])
 
     # Return our counts
-    totalCov = sum(cov for hn, cov in hns.iteritems())
-    return hits, len(hns.keys()), totalCov
+    if len(bcs) == 0:
+        return hits, hns, None
+    else:
+        return hits, hns, bcs
 
-def PlotOnTargetTable( onTargetD, nZmw, totalCov, targets, sizes, outputPrefix ):
+def InvertBarcodeDict( hnCov, bcCalls ):
+    res = defaultdict(set)
+    for hn in hnCov.keys():
+        res["ALL"].add( hn )
+        if bcCalls and hn in bcCalls:
+            bc = bcCalls[hn]
+            res[bc].add( hn )
+            res[bc].add( "{0}_max".format(hn) )
+    return res
+
+def PlotOnTargetTable( onTargetD, setName, hnSet, nZmw, totalCov, targets, sizes, outputPrefix ):
     expCov = {t[0]:t[6]-t[3] for t in targets}
     gSize  = float(sum(l for chrm, l in sizes.iteritems() if isinstance(chrm, str)))
 
-    # Convert the dictionary of counts to a list-of-lists plt.Table()
     tZmw, tEnrich, tCcs, tSubread = 0, 0, 0, 0
     rLabs, rows = [], []
+
     for tName, hDict in onTargetD.iteritems():
         rLabs.append( tName )
-        zmws     = len([hn for hn in hDict.keys() if isinstance(hn, int)])
+        zmws     = len([hn for hn in hDict.keys() if isinstance(hn, int) and hn in hnSet])
         zmwFrac  = round(100 * zmws / float(nZmw), 3)
-        cov      = sum(c for hn, c in hDict.iteritems() if isinstance(hn, str))
+        cov      = sum(c for hn, c in hDict.iteritems() if isinstance(hn, str) and hn in hnSet)
         exp      = expCov[tName]
         enrich   = int( (cov / float(totalCov)) / (exp / gSize) )
-        subreads = sum(c for hn, c in hDict.iteritems() if isinstance(hn, int))
-        ccsEst   = sum(1 for hn, c in hDict.iteritems() if (isinstance(hn, int) and c >= 3))
+        subreads = sum(c for hn, c in hDict.iteritems() if isinstance(hn, int) and hn in hnSet)
+        ccsEst   = sum(1 for hn, c in hDict.iteritems() if (isinstance(hn, int) and hn in hnSet and c >= 3))
         rows.append( [tName, str(zmws), str(zmwFrac) + "%", str(enrich) + "-fold", str(ccsEst), str(subreads)] )
 
         # Accumulate sample-wide totals
@@ -306,15 +331,36 @@ def PlotOnTargetTable( onTargetD, nZmw, totalCov, targets, sizes, outputPrefix )
                 loc='center', cellLoc='center')
     t.set_fontsize(24)
     t.scale(1, 2.72)
-    pltFilename = "{0}_target_table.png".format(outputPrefix.lower())
+    if setName == "ALL":
+        pltFilename = "{0}_target_table.png".format(outputPrefix.lower())
+    else:
+        pltFilename = "{0}_target_table.{1}.png".format(outputPrefix.lower(), setName)
     plt.savefig(pltFilename, bbox='tight')
 
     p = {"caption": "Table of On-Target Subreads/ZMWs By Locus",
            "image": pltFilename,
             "tags": [],
-              "id": "{0} - On-Target Table".format(outputPrefix),
-           "title": "{0} - OnTargetTable".format(outputPrefix)}
+              "id": "{0} (BC #{1}) - On-Target Table".format(outputPrefix, setName),
+           "title": "{0} (BC #{1}) - OnTargetTable".format(outputPrefix, setName)}
     return p
+
+def PlotOnTargetTables( onTargetD, hnCov, bcCalls, targets, sizes, outputPrefix ):
+    # Sort our hns by barcode instead of vise-versa
+    bcSets = InvertBarcodeDict( hnCov, bcCalls )
+
+    # Iterate over each
+    plots = []
+    for bc, hnSet in bcSets.iteritems():
+        print bc, len(list(hnSet)), sorted(list(hnSet))
+        if bc == "ALL":
+            nZmw = len(hnCov.keys())
+            tCov = sum(cov for hn, cov in hnCov.iteritems())
+        else:
+            nZmw = len([hn for hn in hnCov.keys() if hn in hnSet])
+            tCov = sum(cov for hn, cov in hnCov.iteritems() if hn in hnSet)
+        plots.append( PlotOnTargetTable( onTargetD, bc, hnSet, nZmw, tCov, targets, sizes, outputPrefix ) )
+
+    return plots
 
 # First plot the over-all coverage information
 indexFiles = GetIndexFiles( inputFiles )
@@ -326,14 +372,15 @@ p1 = PlotCoverageData( raw, colors, TARGETS, "Subread", outputPrefix)
 p2 = PlotCoverageData( zmw, colors, TARGETS, "ZMW", outputPrefix)
 
 # Second, tabulate the number of usable reads/ZMWs
-onTarget, nZmw, tCov = ReadOnTargetCountsFromPBI( indexFiles, TARGETS )
-p3 = PlotOnTargetTable( onTarget, nZmw, tCov, TARGETS, SIZES, outputPrefix )
+onTarget, hnCov, bcCalls = ReadOnTargetCountsFromPBI( indexFiles, TARGETS )
+p3 = PlotOnTargetTables( onTarget, hnCov, bcCalls, TARGETS, SIZES, outputPrefix )
 
 # Finally, combine our plots into a JSON report to output for ZIA
 reportDict = {"plots":[], "tables":[]}
 reportDict["plots"].append( p1 )
 reportDict["plots"].append( p2 )
-reportDict["plots"].append( p3 )
+for p in p3:
+    reportDict["plots"].append( p3 )
 reportStr = json.dumps(reportDict, indent=1)
 with open("report.json", 'w') as handle:
     handle.write(reportStr)
