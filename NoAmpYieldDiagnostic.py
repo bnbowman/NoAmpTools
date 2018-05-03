@@ -351,7 +351,6 @@ def PlotOnTargetTables( onTargetD, hnCov, bcCalls, targets, sizes, outputPrefix 
     # Iterate over each
     plots = []
     for bc, hnSet in bcSets.iteritems():
-        print bc, len(list(hnSet)), sorted(list(hnSet))
         if bc == "ALL":
             nZmw = len(hnCov.keys())
             tCov = sum(cov for hn, cov in hnCov.iteritems())
