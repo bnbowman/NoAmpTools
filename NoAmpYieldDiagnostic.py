@@ -285,6 +285,7 @@ def InvertBarcodeDict( hnCov, bcCalls ):
     res = defaultdict(set)
     for hn in hnCov.keys():
         res["ALL"].add( hn )
+        res["ALL"].add( "{0}_max".format(hn) )
         if bcCalls and hn in bcCalls:
             bc = bcCalls[hn]
             res[bc].add( hn )
