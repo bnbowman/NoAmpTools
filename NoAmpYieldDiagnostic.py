@@ -351,7 +351,7 @@ def PlotOnTargetTables( onTargetD, hnCov, bcCalls, targets, sizes, outputPrefix 
 
     # Iterate over each
     plots = []
-    for bc, hnSet in bcSets.iteritems():
+    for bc, hnSet in sorted(bcSets.iteritems()):
         if bc == "ALL":
             nZmw = len(hnCov.keys())
             tCov = sum(cov for hn, cov in hnCov.iteritems())
@@ -380,7 +380,7 @@ reportDict = {"plots":[], "tables":[]}
 reportDict["plots"].append( p1 )
 reportDict["plots"].append( p2 )
 for p in p3:
-    reportDict["plots"].append( p3 )
+    reportDict["plots"].append( p )
 reportStr = json.dumps(reportDict, indent=1)
 with open("report.json", 'w') as handle:
     handle.write(reportStr)
