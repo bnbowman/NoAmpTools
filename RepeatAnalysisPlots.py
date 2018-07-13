@@ -247,6 +247,8 @@ def SortFiles( fns ):
     fmrCsvs = []
     alsSeqs = defaultdict(list)
     alsCsvs = []
+    fuchsSeqs = defaultdict(list)
+    fuchsCsvs = []
 
     for fn in fns:
         if fn.endswith('.fastq'):
@@ -261,14 +263,18 @@ def SortFiles( fns ):
                         fmrSeqs[bc].append( tpl )
                     if tpl.startswith('GGCCCCx') or tpl.startswith('CCCCGGx'):
                         alsSeqs[bc].append( tpl )
+                    if tpl.startswith('TGCx') or tpl.startswith('GCAx'):
+                        fuchsSeqs[bc].append( tpl )
         elif "_zmws" in fn and fn.endswith('HTT.csv'):
             httCsvs.append(fn)
         elif "_zmws" in fn and fn.endswith('FMR1.csv'):
             fmrCsvs.append(fn)
         elif "_zmws" in fn and fn.endswith('ALS.csv'):
             alsCsvs.append(fn)
+        elif "_zmws" in fn and fn.endswith('FUCHS.csv'):
+            fuchsCsvs.append(fn)
 
-    return httSeqs, httCsvs, fmrSeqs, fmrCsvs, alsSeqs, alsCsvs
+    return httSeqs, httCsvs, fmrSeqs, fmrCsvs, alsSeqs, alsCsvs, fuchsSeqs, fuchsCsvs
 
 def WriteReportJson( plotList=[], tableList=[] ):
     if plotList or tableList:
@@ -280,7 +286,7 @@ def WriteReportJson( plotList=[], tableList=[] ):
         with open("report.json", 'w') as handle:
             handle.write("{}")
 
-httSeqs, httCsvs, fmrSeqs, fmrCsvs, alsSeqs, alsCsvs = SortFiles( fns )
+httSeqs, httCsvs, fmrSeqs, fmrCsvs, alsSeqs, alsCsvs, fuchsSeqs, fuchsCsvs = SortFiles( fns )
 
 plotList = []
 if len(httSeqs) > 0 and len(httCsvs) > 0:
@@ -312,5 +318,15 @@ if len(alsSeqs) > 0 and len(alsCsvs) > 0:
     plotList += p3
 elif len(alsSeqs) > 0 or len(alsCsvs) > 0:
     raise Warning("Input Error! Recieved ALS sequences but there are ALS scores, skipping...")
+
+if len(fuchsSeqs) > 0 and len(fuchsCsvs) > 0:
+    p1 = PlotRepeatPMF(outputPrefix, "FUCHS", fuchsSeqs, fuchsCsvs)
+    p2 = PlotRepeatHistogram(outputPrefix, "FUCHS", fuchsSeqs, fuchsCsvs)
+    p3 = PlotRepeatDotPlot(outputPrefix, "FUCHS", fuchsSeqs, fuchsCsvs)
+    plotList.append( p1 )
+    plotList.append( p2 )
+    plotList += p3
+elif len(alsSeqs) > 0 or len(alsCsvs) > 0:
+    raise Warning("Input Error! Recieved FUCHS sequences but there are FUCHS scores, skipping...")
 
 WriteReportJson( plotList )
