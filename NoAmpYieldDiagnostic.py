@@ -107,7 +107,7 @@ def GetColorPalatte( sizes ):
     return colors
 
 def ReadCoverageDataFromPBI( fns ):
-    raw = {}
+    raw = defaultdict(lambda: defaultdict(int))
     zmws = {}
     for fn in fns:
         pbi = PacBioBamIndex( fn )
@@ -144,7 +144,7 @@ def ReadCoverageDataFromPBI( fns ):
                 zmws[tId][tBin].add( hn )
 
     # Convert the ZMW data from dicts-of-sets into a dicts-of-ints
-    zmwCounts = {}
+    zmwCounts = defaultdict(lambda: defaultdict(int))
     for tId, binDict in zmws.iteritems():
         zmwCounts[tId] = defaultdict(int)
         for tBin, hns in binDict.iteritems():
@@ -154,7 +154,7 @@ def ReadCoverageDataFromPBI( fns ):
 
 def ConvertAlignDictToList( dataDict, sizes ):
     data = []
-    for tId in sorted(dataDict.keys()):
+    for tId in range(25):
         # Skip the mitochondrial reference / ChrM
         if tId == 22:
             continue
