@@ -298,7 +298,8 @@ def PlotAdapterEcoR1Table( outputPrefix, summaries ):
            "image": pltFilename,
             "tags": [],
               "id": "{0} - Adapter & EcoR1 Counts".format(outputPrefix),
-           "title": "{0} - AdapterEcoR1Counts".format(outputPrefix)}
+           "title": "{0} - AdapterEcoR1Counts".format(outputPrefix),
+             "uid": "0120004"}
     return p
 
 def PlotAdapterOnTargetTable( outputPrefix, summaries ):
@@ -353,7 +354,8 @@ def PlotAdapterOnTargetTable( outputPrefix, summaries ):
            "image": pltFilename,
             "tags": [],
               "id": "{0} - Adapter & OnTarget Counts".format(outputPrefix),
-           "title": "{0} - AdapterOnTargetCounts".format(outputPrefix)}
+           "title": "{0} - AdapterOnTargetCounts".format(outputPrefix),
+             "uid": "0120005"}
     return p
 
 def PlotInternalEcoR1Count( outputPrefix, summaries ):
@@ -386,7 +388,8 @@ def PlotInternalEcoR1Count( outputPrefix, summaries ):
            "image": pltFilename,
             "tags": [],
               "id": "{0} - Internal EcoR1 Counts".format(outputPrefix),
-           "title": "{0} - InternalEcoR1Counts".format(outputPrefix)}
+           "title": "{0} - InternalEcoR1Counts".format(outputPrefix),
+             "uid": "0120006"}
     return p
 
 def PlotInsertSizeHistogram( outputPrefix, summaries ):
@@ -419,7 +422,8 @@ def PlotInsertSizeHistogram( outputPrefix, summaries ):
            "image": pltFilename,
             "tags": [],
               "id": "{0} - Insert Size Distribution".format(outputPrefix),
-           "title": "{0} - InsertSizeDistribution".format(outputPrefix)}
+           "title": "{0} - InsertSizeDistribution".format(outputPrefix),
+             "uid": "0120007"}
     return p
 
 def WriteReportJson( plotList=[], tableList=[] ):

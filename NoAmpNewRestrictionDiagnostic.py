@@ -291,7 +291,8 @@ def PlotRestrictionCountsTable( outputPrefix, counts ):
            "image": pltFilename,
             "tags": [],
               "id": "{0} - Restriction-Enzyme Counts".format(outputPrefix),
-           "title": "{0} - RestrictionEnzymeCounts".format(outputPrefix)}
+           "title": "{0} - RestrictionEnzymeCounts".format(outputPrefix),
+             "uid": "0120008"}
     return p
 
 def PlotRestrictionFracsTable( outputPrefix, counts, precision=2 ):
@@ -338,7 +339,8 @@ def PlotRestrictionFracsTable( outputPrefix, counts, precision=2 ):
            "image": pltFilename,
             "tags": [],
               "id": "{0} - Restriction-Enzyme Fractions".format(outputPrefix),
-           "title": "{0} - RestrictionEnzymeFractions".format(outputPrefix)}
+           "title": "{0} - RestrictionEnzymeFractions".format(outputPrefix),
+             "uid": "0120009"}
     return p
 
 def WriteReportJson( plotList=[], tableList=[] ):

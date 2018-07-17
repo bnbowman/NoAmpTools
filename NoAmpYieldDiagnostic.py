@@ -212,7 +212,8 @@ def PlotCoverageData( data, colors, targets, name, outputPrefix ):
            "image": pltFilename,
             "tags": [],
               "id": "{0} - GenomeCoverageBy{1}".format(outputPrefix, name),
-           "title": "{0} - Genome Coverage By {1}".format(outputPrefix, name)}
+           "title": "{0} - Genome Coverage By {1}".format(outputPrefix, name),
+             "uid": "0110001" if name == "Subread" else "0110002"}
     return p
 
 def ReadOnTargetCountsFromPBI( fns, targets ):
@@ -342,7 +343,8 @@ def PlotOnTargetTable( onTargetD, setName, hnSet, nZmw, totalCov, targets, sizes
            "image": pltFilename,
             "tags": [],
               "id": "{0} (BC #{1}) - On-Target Table".format(outputPrefix, setName),
-           "title": "{0} (BC #{1}) - OnTargetTable".format(outputPrefix, setName)}
+           "title": "{0} (BC #{1}) - OnTargetTable".format(outputPrefix, setName),
+             "uid": "0110003"}
     return p
 
 def PlotOnTargetTables( onTargetD, hnCov, bcCalls, targets, sizes, outputPrefix ):

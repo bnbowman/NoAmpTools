@@ -182,7 +182,8 @@ def PlotRepeatPMF( outputPrefix, name, tpls, csvs ):
            "image": plotName,
             "tags": [],
               "id": "{0} - Probability Mass Distribution for {1}".format(outputPrefix, name),
-           "title": "{0} - Probability Mass Distribution for {1}".format(outputPrefix, name)}
+           "title": "{0} - Probability Mass Distribution for {1}".format(outputPrefix, name),
+             "uid": "0130001"}
     return p
 
 def PlotRepeatHistogram( outputPrefix, name, tpls, csvs ):
@@ -198,7 +199,8 @@ def PlotRepeatHistogram( outputPrefix, name, tpls, csvs ):
            "image": plotName,
             "tags": [],
               "id": "{0} - Repeat Region Size Histogram for {1}".format(outputPrefix, name),
-           "title": "{0} - Repeat Region Size Histogram for {1}".format(outputPrefix, name)}
+           "title": "{0} - Repeat Region Size Histogram for {1}".format(outputPrefix, name),
+             "uid": "0130002"}
     return p
 
 def PlotRepeatDotPlot( outputPrefix, name, tpls, csvs ):
@@ -233,10 +235,11 @@ def PlotRepeatDotPlot( outputPrefix, name, tpls, csvs ):
         plt.close()
 
         plots.append( {"caption": "Repeat Analysis Per-ZMW Estimated Region Sizes",
-                       "image": plotName,
-                       "tags": [],
-                       "id": "{0} - Repeat Region Size Histogram for {1} ({2}--{2})".format(outputPrefix, name, barcode),
-                       "title": "{0} - Repeat Region Size Histogram for {1} ({2}--{2})".format(outputPrefix, name, barcode)}
+                         "image": plotName,
+                          "tags": [],
+                            "id": "{0} - Repeat Region Size Histogram for {1} ({2}--{2})".format(outputPrefix, name, barcode),
+                         "title": "{0} - Repeat Region Size Histogram for {1} ({2}--{2})".format(outputPrefix, name, barcode),
+                           "uid": "0130003"}
                     )
     return plots
 
