@@ -44,9 +44,10 @@ from collections import defaultdict
 
 import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 
 from pbcore.io import IndexedBamReader, PacBioBamIndex
+
+from resources.genomes import decodeGenome
 
 BIN_SIZE  = 2000000
 MIN_ALIGN = 400
@@ -54,32 +55,9 @@ MIN_SNR   = 3.75
 MIN_BQ    = 40
 N_COLOR   = 9
 
-outputPrefix  = sys.argv[1]
-inputFiles    = sys.argv[2:]
-
-## Chromosome Labels from HG19
-LABELS = ["chr{0}".format(l) for l in range(1,23) + ['M', 'X', 'Y']]
-
-## Chromosome Sizes for HG19
-SIZES = {"chr1": 249250621, "chr2":  243199373, "chr3":  198022430, "chr4":  191154276,
-         "chr5": 180915260, "chr6":  171115067, "chr7":  159138663, "chr8":  146364022,
-         "chr9": 141213431, "chr10": 135534747, "chr11": 135006516, "chr12": 133851895,
-        "chr13": 115169878, "chr14": 107349540, "chr15": 102531392, "chr16":  90354753,
-        "chr17":  81195210, "chr18":  78077248, "chr19":  59128983, "chr20":  63025520,
-        "chr21":  48129895, "chr22":  51304566,
-         "chrM":     16571,  "chrX": 155270560, "chrY":   59373566}
-## Duplicate each entry, so we can access it by either name or index
-for i, c in enumerate(LABELS):
-    SIZES[i] = SIZES[c]
-
-## Locus,ChrName,ChrIdx,GeneStart,RegionStart,RegionEnd,GeneEnd
-TARGETS = [["HTT", "chr4", 4, 3075691, 3076603, 3076661, 3076815],
-           ["FMR1", "chrX", 23, 146993123, 146993568, 146993629, 146994131],
-           ["ALS", "chr9", 9, 27572985, 27573522, 27573541, 27574014],
-           ["FUCHS", "chr18", 18, 53251995, 53253386, 53253458, 53253577],
-           ["SCA10", "chr22", 22, 46190744, 46191234, 46191305, 46191756],
-           ["EWINGS_Chr20", "chr20", 20, 21553989, 21556922, 21557001, 21557036],
-           ["EWINGS_ChrX", "chrX", 23, 30325813, 30328875, 30328976, 30329062]]
+outputPrefix = sys.argv[1]
+genomeName   = sys.argv[2]
+inputFiles   = sys.argv[3:]
 
 def GetIndexFiles( fns ):
     indexFiles = []
@@ -97,14 +75,6 @@ def GetIndexFiles( fns ):
         else:
             raise SystemExit("Unrecognized file format! Cannot read '{0}'".format(fn))
     return indexFiles
-
-def GetColorPalatte( sizes ):
-    colors = {}
-    for i, n in enumerate( sorted(sizes.keys()) ):
-        color = cm.gist_rainbow(i%(N_COLOR+1) / float(N_COLOR))
-        colors[i] = color
-        colors[n] = color
-    return colors
 
 def ReadCoverageDataFromPBI( fns ):
     raw = defaultdict(lambda: defaultdict(int))
@@ -152,17 +122,12 @@ def ReadCoverageDataFromPBI( fns ):
 
     return raw, zmwCounts
 
-def ConvertAlignDictToList( dataDict, sizes ):
+def ConvertAlignDictToList( genome, dataDict ):
     data = []
     for tId in range(25):
-        # Skip the mitochondrial reference / ChrM
-        if tId == 22:
-            continue
-
         # Add each binned region as a new data row / graph bar
-        size = sizes[tId]
         covDict = dataDict[tId]
-        for i in range(size / BIN_SIZE):
+        for i in range(genome.size(tId) / BIN_SIZE):
             data.append( (tId, covDict[i]) )
 
         # Append a zero at the end as a spacer for the dividing line
@@ -170,7 +135,7 @@ def ConvertAlignDictToList( dataDict, sizes ):
 
     return data
 
-def PlotCoverageData( data, colors, targets, name, outputPrefix ):
+def PlotCoverageData( genome, data, colors, name, outputPrefix ):
     # Separate the Chromosome from the coverage information
     chrs = [v[0] for v in data]
     cov  = [v[1] for v in data]
@@ -195,13 +160,13 @@ def PlotCoverageData( data, colors, targets, name, outputPrefix ):
 
     # Add target labels to the graph and set the y-axis
     maxCov = max(cov)
-    for t in targets:
+    for t in genome.targets():
         tName   = t[0]
         chrIdx = t[2]
         mid    = (t[3] + t[6]) / 2
         chrBin = mid / BIN_SIZE
         offset = len(name) * 4 - 4
-        tBin    = cutoffs[chrIdx-2] + chrBin - offset + 2  # +2 to align text-middle rather than text-bottom
+        tBin    = cutoffs[chrIdx-1] + chrBin - offset + 2  # +2 to align text-middle rather than text-bottom
         plt.text(tBin, maxCov, tName, fontsize=14, rotation='vertical')
 
     plt.ylim(0, maxCov * 1.1)
@@ -216,17 +181,10 @@ def PlotCoverageData( data, colors, targets, name, outputPrefix ):
              "uid": "0110001" if name == "Subread" else "0110002"}
     return p
 
-def ReadOnTargetCountsFromPBI( fns, targets ):
+def ReadOnTargetCountsFromPBI( genome, fns ):
     # Conver the target-list to a dictionary for faster searching
-    tDict = defaultdict(list)
-    for t in targets:
-        if t[2] <= 22:
-            target_tId = t[2]-1
-        else:
-            target_tId = t[2]
-        tDict[target_tId].append( t )
-
-    hits = {t[0]:defaultdict(int) for t in targets}
+    tDict = genome.targetDictionary()
+    hits = {t[0]:defaultdict(int) for t in genome.targets()}
     hns = defaultdict(int)
     bcs = defaultdict(int)
 
@@ -293,9 +251,9 @@ def InvertBarcodeDict( hnCov, bcCalls ):
             res[bc].add( "{0}_max".format(hn) )
     return res
 
-def PlotOnTargetTable( onTargetD, setName, hnSet, nZmw, totalCov, targets, sizes, outputPrefix ):
-    expCov = {t[0]:t[6]-t[3] for t in targets}
-    gSize  = float(sum(l for chrm, l in sizes.iteritems() if isinstance(chrm, str)))
+def PlotOnTargetTable( genome, onTargetD, setName, hnSet, nZmw, totalCov, outputPrefix ):
+    expCov = {t[0]:t[6]-t[3] for t in genome.targets()}
+    gSize  = float(sum(l for chrm, l in genome.sizes().iteritems() if isinstance(chrm, str)))
 
     tZmw, tEnrich, tCcs, tSubread = 0, 0, 0, 0
     rLabs, rows = [], []
@@ -347,7 +305,7 @@ def PlotOnTargetTable( onTargetD, setName, hnSet, nZmw, totalCov, targets, sizes
              "uid": "0110003"}
     return p
 
-def PlotOnTargetTables( onTargetD, hnCov, bcCalls, targets, sizes, outputPrefix ):
+def PlotOnTargetTables( genome, onTargetD, hnCov, bcCalls, outputPrefix ):
     # Sort our hns by barcode instead of vise-versa
     bcSets = InvertBarcodeDict( hnCov, bcCalls )
 
@@ -360,22 +318,24 @@ def PlotOnTargetTables( onTargetD, hnCov, bcCalls, targets, sizes, outputPrefix 
         else:
             nZmw = len([hn for hn in hnCov.keys() if hn in hnSet])
             tCov = sum(cov for hn, cov in hnCov.iteritems() if hn in hnSet)
-        plots.append( PlotOnTargetTable( onTargetD, bc, hnSet, nZmw, tCov, targets, sizes, outputPrefix ) )
+        plots.append( PlotOnTargetTable( genome, onTargetD, bc, hnSet, nZmw, tCov, outputPrefix ) )
 
     return plots
+
+genome = decodeGenome(genomeName)
 
 # First plot the over-all coverage information
 indexFiles = GetIndexFiles( inputFiles )
 rawD, zmwD = ReadCoverageDataFromPBI( indexFiles )
-raw = ConvertAlignDictToList( rawD, SIZES )
-zmw = ConvertAlignDictToList( zmwD, SIZES )
-colors = GetColorPalatte( SIZES )
-p1 = PlotCoverageData( raw, colors, TARGETS, "Subread", outputPrefix)
-p2 = PlotCoverageData( zmw, colors, TARGETS, "ZMW", outputPrefix)
+raw = ConvertAlignDictToList( genome, rawD )
+zmw = ConvertAlignDictToList( genome, zmwD )
+colors = genome.colors(N_COLOR)
+p1 = PlotCoverageData( genome, raw, colors, "Subread", outputPrefix)
+p2 = PlotCoverageData( genome, zmw, colors, "ZMW", outputPrefix)
 
 # Second, tabulate the number of usable reads/ZMWs
-onTarget, hnCov, bcCalls = ReadOnTargetCountsFromPBI( indexFiles, TARGETS )
-p3 = PlotOnTargetTables( onTarget, hnCov, bcCalls, TARGETS, SIZES, outputPrefix )
+onTarget, hnCov, bcCalls = ReadOnTargetCountsFromPBI( genome, indexFiles )
+p3 = PlotOnTargetTables( genome, onTarget, hnCov, bcCalls, outputPrefix )
 
 # Finally, combine our plots into a JSON report to output for ZIA
 reportDict = {"plots":[], "tables":[]}

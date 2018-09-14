@@ -53,6 +53,8 @@ from pbcore.io import IndexedBamReader, PacBioBamIndex, IndexedFastaReader, Fast
 
 import ConsensusCore2 as cc
 
+from resources.genomes import decodeGenome
+
 MIN_ACC   = 0.8
 
 if len(sys.argv) < 4:
@@ -61,34 +63,16 @@ if len(sys.argv) < 4:
     raise SystemExit
 
 outputPrefix = sys.argv[1]
-indexedFasta = sys.argv[2]
-inputFiles   = sys.argv[3:]
+genomeName   = sys.argv[2]
+indexedFasta = sys.argv[3]
+inputFiles   = sys.argv[4:]
 
 cfg = cc.AlignConfig(cc.AlignParams.Default(), 1);
-
-## Locus,ChrName,ChrIdx,GeneStart,RegionStart,RegionEnd,GeneEnd
-TARGETS = [["HTT", "chr4", 4, 3074344, 3076603, 3076661, 3077078],
-           ["FMR1", "chrX", 23, 146993123, 146993568, 146993629, 146994131],
-           ["ALS", "chr9", 9, 27572985, 27573522, 27573541, 27574014],
-           ["FUCHS", "chr18", 18, 53251995, 53253386, 53253458, 53253577],
-           ["SCA10", "chr22", 22, 46190744, 46191234, 46191305, 46191756],
-           ["EWINGS_Chr20", "chr20", 20, 21553989, 21556922, 21557001, 21557036],
-           ["EWINGS_ChrX", "chrX", 23, 30325813, 30328875, 30328976, 30329062]]
 
 GUIDES = {"FMR1"     : "AGAGGCCGAACTGGGATAAC",
           "FMR1_201" : "CGCGCGTCTGTCTTTCGACC",
           "HTT"      : "AGCGGGCCCAAACTCACGGT",
           "HTT_SQ1"  : "CTTATTAACAGCAGAGAACT"}
-
-def TargetsToTargetDict( targets ):
-    tDict = defaultdict(list)
-    for t in targets:
-        if t[2] <= 22:
-            target_tId = t[2]-1
-        else:
-            target_tId = t[2]
-        tDict[target_tId].append( t )
-    return tDict
 
 def ScoreCas9Site( seq ):
     maxKey = None
@@ -165,8 +149,9 @@ def ParseAdapterTypes( record ):
     else:
         return leftCounts + rightCounts
 
-def ReadAlignedBamFile( fns, tDict ):
+def ReadAlignedBamFile( genome, fns ):
     # Dictionaries for tracking ZMW-level results
+    tDict = genome.targetDictionary()
     cov = defaultdict(int)
     adps = {}
     windows = {}
@@ -187,9 +172,7 @@ def ReadAlignedBamFile( fns, tDict ):
             # Search our target list for targets that overlap our current subread
             target = "OFF"
             for tName, _, tTid, _, tRS, tRE, _ in tDict[tId]:
-                if tTid != tId:
-                    continue
-                elif tStart < tRS and tEnd > tRE:
+                if tStart < tRS and tEnd > tRE:
                     target = tName
                     break
 
@@ -403,7 +386,6 @@ def PlotInsertSizeHistogram( outputPrefix, summaries ):
     labels = ["OFF"]
     sizeList = [np.array(sizes["OFF"])]
     for k in sorted(sizes.keys()):
-        print k, len(sizes[k])
         if k != "OFF":
             labels.append( k )
             sizeList.append( np.array(sizes[k]) )
@@ -432,9 +414,8 @@ def WriteReportJson( plotList=[], tableList=[] ):
     with open("report.json", 'w') as handle:
         handle.write(reportStr)
 
-# Second, tabulate the number of usable reads/ZMWs
-tDict = TargetsToTargetDict( TARGETS )
-windows, adps = ReadAlignedBamFile( inputFiles, tDict )
+genome = decodeGenome( genomeName )
+windows, adps = ReadAlignedBamFile( genome, inputFiles )
 summaries = SummarizeData( indexedFasta, windows, adps )
 WriteSummaryCsv( outputPrefix, summaries )
 p1 = PlotAdapterEcoR1Table( outputPrefix, summaries )

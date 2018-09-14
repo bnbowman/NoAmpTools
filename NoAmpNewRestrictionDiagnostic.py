@@ -48,6 +48,8 @@ import matplotlib.pyplot as plt
 
 from pbcore.io import IndexedBamReader, PacBioBamIndex, IndexedFastaReader, FastaRecord, openDataSet
 
+from resources.genomes import decodeGenome
+
 COMPLEMENT = string.maketrans("ACGTacgt-", "TGCAtgca-")
 
 if len(sys.argv) < 4:
@@ -56,14 +58,9 @@ if len(sys.argv) < 4:
     raise SystemExit
 
 outputPrefix = sys.argv[1]
-indexedFasta = sys.argv[2]
-inputFiles    = sys.argv[3:]
-
-## Locus,ChrName,ChrIdx,GeneStart,RegionStart,RegionEnd,GeneEnd
-TARGETS = [["HTT", "chr4", 3, 3075691, 3076603, 3076661, 3076815],
-           ["FMR1", "chrX", 23, 146993123, 146993568, 146993629, 146994131],
-           ["ALS", "chr9", 8, 27572985, 27573522, 27573541, 27574014],
-           ["SCA10", "chr22", 21, 46190744, 46191234, 46191305, 46191756]]
+genomeName   = sys.argv[2]
+indexedFasta = sys.argv[3]
+inputFiles   = sys.argv[4:]
 
 def HasCutSite( re_site, seq ):
     return "T" if (re_site in seq) else "F"
@@ -162,9 +159,7 @@ def ReadAlignedBamFile( fns, tList ):
             # Search our target list for targets that overlap our current subread
             target = "OFF"
             for tName, _, tTid, _, tRS, tRE, _ in tList:
-                if tTid != tId:
-                    continue
-                elif tStart < tRS and tEnd > tRE:
+                if tStart < tRS and tEnd > tRE:
                     target = tName
                     break
 
@@ -224,8 +219,8 @@ def SummarizeRestrictionData( indexedFasta, windows, adps ):
         chrm = fa[tid]
 
         # Search for restriction sites near the alignment edges
-        fiveP  = chrm.sequence[s-5:s+6]
-        threeP = chrm.sequence[e-5:e+6]
+        fiveP  = chrm.sequence[max(s-5, 0):s+6]
+        threeP = chrm.sequence[max(e-5, 0):e+6]
         threeP_rc = threeP.translate(COMPLEMENT)[::-1]
         left = SearchSequence( fiveP )
         right = SearchSequence( threeP_rc )
@@ -351,7 +346,8 @@ def WriteReportJson( plotList=[], tableList=[] ):
 
 
 # Second, tabulate the number of usable reads/ZMWs
-windows, adps = ReadAlignedBamFile( inputFiles, TARGETS )
+genome = decodeGenome( genomeName )
+windows, adps = ReadAlignedBamFile( inputFiles, genome.targets() )
 summaries = SummarizeRestrictionData( indexedFasta, windows, adps )
 WriteSummaryCsv( outputPrefix, summaries )
 counts = TabulateRestrictionTable( summaries )
